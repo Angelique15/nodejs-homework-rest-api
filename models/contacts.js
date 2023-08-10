@@ -47,7 +47,7 @@ const updateContact = (id, updatedData) => {
 
 const removeContact = (id) => {
   const contacts = readContactsFile();
-  const indexToRemove = contacts.findIndex((contact) => contact.id === parseInt(id));
+  const indexToRemove = contacts.findIndex((contact) => contact.id === id);
 
   if (indexToRemove === -1) {
     return false;
@@ -57,6 +57,7 @@ const removeContact = (id) => {
   writeContactsFile(contacts);
   return true;
 };
+
 
 module.exports = {
   addContact,

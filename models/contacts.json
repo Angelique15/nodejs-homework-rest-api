@@ -60,15 +60,9 @@
     "phone": "(748) 206-2688"
   },
   {
-    "id": 1691613177198,
-    "name": "John Doe",
-    "email": "johndoe@example.com",
-    "phone": "1234567890"
-  },
-  {
-    "id": "7890e0ea-0ad4-4fd9-919b-62dc393fdf92",
-    "name": "Lola Pitt",
-    "email": "Lopitt@example.com",
-    "phone": "1234567890"
+    "id": "9e81a0e8-fbe6-46be-89b4-f87c6e50cc31",
+    "name": "Lola Pulido",
+    "email": "lola@example.com",
+    "phone": "123456789"
   }
 ]
