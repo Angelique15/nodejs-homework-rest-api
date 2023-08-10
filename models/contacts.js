@@ -1,6 +1,7 @@
 // const fs = require('fs/promises')
 const fs = require('fs');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid'); // Importa uuidv4 de la biblioteca uuid
 
 const contactsFilePath = path.join(__dirname, 'contacts.json');
 
@@ -15,7 +16,7 @@ const writeContactsFile = (contacts) => {
 
 const addContact = (contact) => {
   const contacts = readContactsFile();
-  const newContact = { id: Date.now(), ...contact };
+  const newContact = { id: uuidv4(), ...contact }; // Genera un nuevo UUID
   contacts.push(newContact);
   writeContactsFile(contacts);
   return newContact;
@@ -27,12 +28,13 @@ const listContacts = () => {
 
 const getContactById = (id) => {
   const contacts = readContactsFile();
-  return contacts.find((contact) => contact.id === parseInt(id));
+  return contacts.find((contact) => contact.id === id);
 };
 
 const updateContact = (id, updatedData) => {
   const contacts = readContactsFile();
-  const contactToUpdate = contacts.find((contact) => contact.id === parseInt(id));
+  const contactToUpdate = contacts.find((contact) => contact.id === id);
+
 
   if (!contactToUpdate) {
     return null;

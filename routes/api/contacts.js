@@ -9,6 +9,12 @@ const contactSchema = Joi.object({
   phone: Joi.string().required(),
 });
 
+const updateContactSchema = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  phone: Joi.string().required(),
+});
+
 // GET /api/contacts
 router.get('/', (req, res) => {
   const contacts = contactsModel.listContacts();
@@ -51,7 +57,7 @@ router.delete('/:id', (req, res) => {
 
 // PUT /api/contacts/:id
 router.put('/:id', (req, res) => {
-  const { error } = contactSchema.validate(req.body);
+  const { error } = updateContactSchema.validate(req.body); // Utiliza el esquema de validación para actualizar
 
   if (error) {
     res.status(400).json({ message: error.details[0].message });
