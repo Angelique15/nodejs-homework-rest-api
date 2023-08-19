@@ -1,3 +1,4 @@
+// controller/index.js
 const Joi = require('joi');
 const Contact = require('../service/schemas/contacts');
 
