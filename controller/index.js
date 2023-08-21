@@ -4,7 +4,8 @@ const Contact = require('../service/schemas/contacts');
 
 const getAllContacts = async (req, res, next) => {
     try {
-        const contacts = await Contact.find();
+        const ownerId = req.user._id; // Obtener el _id del usuario actual
+        const contacts = await Contact.find({ owner: ownerId }); // Filtrar los contactos por el owner
         res.json({ contacts });
     } catch (error) {
         next(error);
