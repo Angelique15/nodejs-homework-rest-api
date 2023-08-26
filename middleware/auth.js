@@ -18,9 +18,10 @@ const auth = async (req, res, next) => {
 
     try {
         const payload = jwt.verify(token, secret);
-        const user = await User.findOne({ _id: payload.id, token });
+        console.log(payload); // Agregar este console.log para inspeccionar el payload del token
 
-        if (!user) {
+        const user = await User.findOne({ _id: payload.id });
+        if (!user || user.token !== token) {
             return res.status(401).json({
                 status: 'error',
                 code: 401,
@@ -41,3 +42,4 @@ const auth = async (req, res, next) => {
 };
 
 module.exports = auth;
+
