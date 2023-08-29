@@ -5,9 +5,66 @@ const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const User = require('../service/schemas/user');
 const authMiddleware = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const gravatar = require('gravatar'); // Importa el paquete gravatar
+const fs = require('fs/promises');
+const jimp = require('jimp');
+const { v4: uuidv4 } = require('uuid');
+
 const router = express.Router();
 
 const secret = process.env.SECRET;
+// Configuración de Multer
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/avatars'); // La carpeta donde se guardarán los avatares
+    },
+    filename: function (req, file, cb) {
+        // Generar un nombre de archivo único
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, uniqueSuffix + ext);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type'), false);
+    }
+};
+
+const upload = multer({ storage: storage, fileFilter: fileFilter });
+
+
+// Ruta para actualizar el avatar
+router.patch('/avatars', authMiddleware, upload.single('avatar'), async (req, res) => {
+    try {
+        const user = req.user;
+        const tempPath = req.file.path;
+
+        // Mover el archivo de tmp a la ubicación final (public/avatars)
+        const uniqueFilename = `${uuidv4()}${path.extname(tempPath)}`;
+        const newPath = path.join('public', 'avatars', uniqueFilename);
+
+        await fs.rename(tempPath, newPath);
+
+        // Procesar la imagen con jimp y asignarle dimensiones de 250x250
+        const image = await jimp.read(newPath);
+        await image.resize(250, 250).write(newPath);
+
+        // Actualizar la URL del avatar en el usuario
+        user.avatarURL = `avatars/${uniqueFilename}`;
+        await user.save();
+
+        res.status(200).json({ avatarURL: user.avatarURL });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
 
 router.post('/signup', async (req, res) => {
     try {
@@ -30,15 +87,24 @@ router.post('/signup', async (req, res) => {
             return res.status(409).json({ message: 'Email in use' });
         }
 
+        // Generar la URL del avatar utilizando gravatar
+        const avatarURL = gravatar.url(email, { s: '200', r: 'pg', d: 'identicon' });
+
         // Hash de la contraseña usando bcrypt
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Crear un nuevo usuario en la base de datos
-        const newUser = new User({ email, password: hashedPassword });
+        const newUser = new User({ email, password: hashedPassword, avatarURL });
         await newUser.save();
 
         // Respuesta exitosa
-        res.status(201).json({ user: { email: newUser.email, subscription: newUser.subscription } });
+        res.status(201).json({
+            user: {
+                email: newUser.email,
+                subscription: newUser.subscription,
+                avatarURL,
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error' });
     }
