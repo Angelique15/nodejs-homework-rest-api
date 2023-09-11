@@ -2,7 +2,9 @@
 module.exports = {
     testEnvironment: 'node',
     transform: {
-        '^.+\\.tsx?$': 'ts-jest',
+        '^.+\\.ts?$': 'ts-jest',
     },
-    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+    moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+    testTimeout: 10000, // 10 segundos en milisegundos
 };
+

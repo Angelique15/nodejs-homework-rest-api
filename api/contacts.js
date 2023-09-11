@@ -15,4 +15,3 @@ router.patch('/:contactId/favorite', auth, controller.updateStatusContact);
 module.exports = router;
 
 
-
