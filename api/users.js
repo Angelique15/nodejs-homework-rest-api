@@ -5,12 +5,14 @@ const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 const User = require('../service/schemas/user');
 const authMiddleware = require('../middleware/auth');
+const sendEmail = require('../middleware/mailer');
 const multer = require('multer');
 const path = require('path');
 const gravatar = require('gravatar'); // Importa el paquete gravatar
 const fs = require('fs/promises');
 const jimp = require('jimp');
 const { v4: uuidv4 } = require('uuid');
+
 
 const router = express.Router();
 
@@ -95,7 +97,19 @@ router.post('/signup', async (req, res) => {
 
         // Crear un nuevo usuario en la base de datos
         const newUser = new User({ email, password: hashedPassword, avatarURL });
+
+        // Generar un token de verificación único
+        const verificationToken = uuidv4();
+
+        // Asigna el token de verificación al usuario
+        newUser.verificationToken = verificationToken;
         await newUser.save();
+
+        // Genera el enlace de verificación
+        const verificationLink = `${process.env.CLIENT_URL}/users/verify/${verificationToken}`;
+
+        // Envía el correo electrónico de verificación
+        await sendEmail(newUser.email, verificationLink);
 
         // Respuesta exitosa
         res.status(201).json({
@@ -109,6 +123,7 @@ router.post('/signup', async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
 
 // Login Route
 router.post('/login', async (req, res, next) => {
@@ -128,8 +143,14 @@ router.post('/login', async (req, res, next) => {
 
         // Buscar al usuario por correo electrónico
         const user = await User.findOne({ email });
+
         if (!user || !await bcrypt.compare(password, user.password)) {
             return res.status(401).json({ message: 'Email or password is wrong' });
+        }
+
+        // Verificar si el correo está verificado
+        if (!user.verify) {
+            return res.status(401).json({ message: 'Email is not verified' });
         }
 
         // Crear un token JWT
@@ -151,6 +172,7 @@ router.post('/login', async (req, res, next) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
 
 // Ruta de logout con el middleware de autenticación
 router.get('/logout', authMiddleware, async (req, res) => {
@@ -183,5 +205,75 @@ router.get('/current', authMiddleware, (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
+// Ruta para verificar el correo electrónico
+router.get('/verify/:verificationToken', async (req, res) => {
+    try {
+        const verificationToken = req.params.verificationToken;
+
+        // Buscar al usuario por el token de verificación
+        const user = await User.findOne({ verificationToken });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Actualizar el usuario para marcarlo como verificado y eliminar el token de verificación
+        user.verify = true;
+        user.verificationToken = null;
+        await user.save();
+
+        res.status(200).json({ message: 'Verification successful' });
+    } catch (error) {
+        console.error(error); // Agrega esta línea para obtener información sobre el error
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+
+// Ruta para reenviar el correo de verificación
+router.post('/users/verify', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Validar si el campo "email" está presente en el cuerpo de la solicitud
+        if (!email) {
+            return res.status(400).json({ message: 'Missing required field: email' });
+        }
+
+        // Buscar al usuario por correo electrónico
+        const user = await User.findOne({ email });
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verificar si el usuario ya está verificado
+        if (user.verify) {
+            return res.status(400).json({ message: 'Verification has already been passed' });
+        }
+
+        // Generar un nuevo token de verificación
+        const verificationToken = uuidv4();
+
+        // Asignar el nuevo token al usuario
+        user.verificationToken = verificationToken;
+        await user.save();
+
+        // Generar el enlace de verificación
+        const verificationLink = `${process.env.CLIENT_URL}/users/verify/${verificationToken}`;
+
+        // Envía el correo electrónico de verificación
+        await sendEmail(user.email, verificationLink);
+
+        // Respuesta exitosa
+        res.status(200).json({ message: 'Verification email sent' });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+
 
 module.exports = router;

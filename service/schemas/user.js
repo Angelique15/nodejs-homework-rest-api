@@ -22,6 +22,14 @@ const userSchema = new mongoose.Schema({
         default: null,
     },
     avatarURL: String, // Agrega la propiedad avatarURL al esquema
+    verify: {
+        type: Boolean,
+        default: false,
+    },
+    verificationToken: {
+        type: String,
+        required: [true, 'Verify token is required'],
+    },
 });
 
 // Antes de guardar un nuevo usuario, genera la URL del avatar utilizando gravatar
